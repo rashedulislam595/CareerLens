@@ -79,11 +79,26 @@ export default function AICareerCoachPage() {
     setIsTyping(true);
 
     try {
+      // Read session token the same way the axios interceptor does
+      const getSessionToken = (): string | null => {
+        if (typeof document === 'undefined') return null;
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; better-auth.session_token=`);
+        if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
+        return localStorage.getItem('better-auth.session_token');
+      };
+      const sessionToken = getSessionToken();
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (sessionToken) {
+        headers['Authorization'] = `Bearer ${sessionToken}`;
+      }
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/ai/chat`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         credentials: 'include',
         body: JSON.stringify({
           message: finalContent,
