@@ -13,6 +13,8 @@
 [![Gemini AI](https://img.shields.io/badge/Google-Gemini%203.5%20Flash-4285f4?style=flat-square&logo=google)](https://ai.google.dev/)
 [![Groq](https://img.shields.io/badge/Groq-Llama%203.1-f97316?style=flat-square)](https://groq.com/)
 
+**Client Repo:** [CareerLens](https://github.com/rashedulislam595/CareerLens) &nbsp;|&nbsp; **Server Repo:** [carearlense-server](https://github.com/rashedulislam595/carearlense-server)
+
 [Live Demo](#) · [API Docs](#-api-endpoints) · [Report Bug](https://github.com/rashedulislam595/CareerLens/issues)
 
 </div>
@@ -78,7 +80,7 @@ Built with a modern, dark-themed UI, real-time AI streaming, and a robust REST A
 
 ## 🛠 Tech Stack
 
-### Frontend (Client — `main` branch)
+### Frontend — [CareerLens](https://github.com/rashedulislam595/CareerLens)
 
 | Technology | Version | Purpose |
 |---|---|---|
@@ -95,7 +97,7 @@ Built with a modern, dark-themed UI, real-time AI streaming, and a robust REST A
 | **Lucide React** | 1.x | Icon library |
 | **Zod** | 4.x | Schema validation |
 
-### Backend (Server — `server` branch)
+### Backend — [carearlense-server](https://github.com/rashedulislam595/carearlense-server)
 
 | Technology | Version | Purpose |
 |---|---|---|
@@ -115,52 +117,113 @@ Built with a modern, dark-themed UI, real-time AI streaming, and a robust REST A
 
 ## 📁 Project Structure
 
+This project is split across **two separate repositories**:
+
+| Repo | Description | Link |
+|---|---|---|
+| **CareerLens** | Next.js Frontend (Client) | [rashedulislam595/CareerLens](https://github.com/rashedulislam595/CareerLens) |
+| **carearlense-server** | Express.js Backend (Server) | [rashedulislam595/carearlense-server](https://github.com/rashedulislam595/carearlense-server) |
+
+### 📦 Client — `CareerLens`
+
 ```
 CareerLens/
-├── 📦 client/  (main branch — Next.js App)
-│   └── src/
-│       ├── app/
-│       │   ├── (auth)/          # Login & Register pages
-│       │   ├── ai/
-│       │   │   ├── chat/        # AI Career Coach
-│       │   │   └── generator/   # AI Content Generator
-│       │   ├── dashboard/       # User dashboard & analytics
-│       │   ├── jobs/
-│       │   │   ├── [id]/        # Job detail page
-│       │   │   ├── add/         # Post a job
-│       │   │   └── manage/      # Manage your job listings
-│       │   ├── profile/         # User profile
-│       │   ├── about/           # About page
-│       │   ├── blog/            # Blog page
-│       │   ├── contact/         # Contact page
-│       │   └── privacy/         # Privacy policy
-│       ├── components/
-│       │   ├── home/            # Homepage sections
-│       │   ├── JobCard.tsx
-│       │   ├── Navbar.tsx
-│       │   └── Footer.tsx
-│       ├── hooks/               # Custom React hooks
-│       ├── lib/                 # API client, auth, utils
-│       ├── context/             # Auth context
-│       └── types/               # TypeScript interfaces
-│
-└── 🖥  server/  (server branch — Express.js API)
-    └── src/
-        ├── config/              # DB & auth config
-        ├── controllers/         # Route handlers
-        │   ├── ai.controller.ts
-        │   ├── job.controller.ts
-        │   ├── user.controller.ts
-        │   └── review.controller.ts
-        ├── middlewares/         # Auth, error handling
-        ├── models/              # Mongoose schemas
-        │   ├── job.model.ts
-        │   ├── user.model.ts
-        │   └── chat.model.ts
-        ├── routes/              # Express routers
-        ├── services/
-        │   └── ai.service.ts    # Gemini + Groq integration
-        └── scripts/             # Database seeding
+├── public/
+├── src/
+│   ├── app/
+│   │   ├── (auth)/
+│   │   │   ├── login/           # Login page
+│   │   │   └── register/        # Register page
+│   │   ├── ai/
+│   │   │   ├── chat/            # AI Career Coach (streaming chat)
+│   │   │   └── generator/       # AI Content Generator
+│   │   ├── api/
+│   │   │   └── auth/            # Better Auth Next.js route handler
+│   │   ├── dashboard/           # User dashboard & analytics
+│   │   ├── jobs/
+│   │   │   ├── [id]/            # Job detail page
+│   │   │   ├── add/             # Post a new job
+│   │   │   └── manage/          # Manage your job listings
+│   │   ├── profile/             # User profile page
+│   │   ├── about/               # About page
+│   │   ├── blog/                # Blog page
+│   │   ├── contact/             # Contact page
+│   │   ├── privacy/             # Privacy policy
+│   │   ├── layout.tsx           # Root layout (Navbar, Footer, Providers)
+│   │   ├── page.tsx             # Homepage
+│   │   └── globals.css          # Global styles & design tokens
+│   ├── components/
+│   │   ├── home/
+│   │   │   ├── HeroSection.tsx
+│   │   │   ├── AIShowcaseSection.tsx
+│   │   │   ├── FeaturesSection.tsx
+│   │   │   ├── HowItWorksSection.tsx
+│   │   │   ├── StatsSection.tsx
+│   │   │   ├── CategoriesSection.tsx
+│   │   │   ├── CompaniesSection.tsx
+│   │   │   ├── TestimonialsSection.tsx
+│   │   │   ├── FAQSection.tsx
+│   │   │   ├── NewsletterSection.tsx
+│   │   │   └── CTASection.tsx
+│   │   ├── JobCard.tsx
+│   │   ├── JobSkeleton.tsx
+│   │   ├── Navbar.tsx
+│   │   ├── Footer.tsx
+│   │   └── Providers.tsx        # TanStack Query + Auth providers
+│   ├── context/
+│   │   └── AuthContext.tsx
+│   ├── hooks/
+│   │   ├── useJobs.ts           # React Query hooks for jobs & stats
+│   │   └── useRequireAuth.ts    # Auth guard hook
+│   ├── lib/
+│   │   ├── api.ts               # Axios instance
+│   │   ├── auth.ts              # Better Auth server config
+│   │   ├── auth-client.ts       # Better Auth client config
+│   │   └── utils.ts             # Utility functions
+│   └── types/
+│       └── index.ts             # TypeScript interfaces (User, Job, Review)
+├── .env                         # Environment variables
+├── .gitignore
+├── next.config.ts
+├── package.json
+└── tsconfig.json
+```
+
+### 🖥 Server — `carearlense-server`
+
+```
+carearlense-server/
+├── src/
+│   ├── config/
+│   │   ├── database.ts          # MongoDB connection
+│   │   └── auth.ts              # Better Auth server setup
+│   ├── controllers/
+│   │   ├── ai.controller.ts     # AI generate, chat, recommend, tags
+│   │   ├── job.controller.ts    # CRUD, save/unsave, filter jobs
+│   │   ├── user.controller.ts   # Profile, stats
+│   │   └── review.controller.ts # Job reviews & ratings
+│   ├── middlewares/
+│   │   ├── auth.middleware.ts   # JWT auth guard
+│   │   └── error.middleware.ts  # Global error handler
+│   ├── models/
+│   │   ├── job.model.ts         # Job schema
+│   │   ├── user.model.ts        # User schema
+│   │   └── chat.model.ts        # Chat session schema
+│   ├── routes/
+│   │   ├── job.routes.ts
+│   │   ├── ai.routes.ts
+│   │   ├── user.routes.ts
+│   │   └── review.routes.ts
+│   ├── services/
+│   │   └── ai.service.ts        # Gemini + Groq SDK integration
+│   ├── scripts/
+│   │   └── seed.ts              # Database seed script
+│   └── index.ts                 # Express app entry point
+├── .env                         # Environment variables (not committed)
+├── .gitignore
+├── nodemon.json
+├── package.json
+└── tsconfig.json
 ```
 
 ---
@@ -173,14 +236,16 @@ CareerLens/
 - Google Gemini API Key → [Get one here](https://aistudio.google.com/)
 - Groq API Key → [Get one here](https://console.groq.com/)
 
-### 1. Clone the Repository
+### 1. Clone the Repositories
 
 ```bash
-# Clone client (main branch)
-git clone -b main https://github.com/rashedulislam595/CareerLens.git client
+# Clone the frontend (client)
+git clone https://github.com/rashedulislam595/CareerLens.git
+cd CareerLens
 
-# Clone server (server branch)
-git clone -b server https://github.com/rashedulislam595/CareerLens.git server
+# Clone the backend (server) — in a separate folder
+git clone https://github.com/rashedulislam595/carearlense-server.git
+cd carearlense-server
 ```
 
 ### 2. Install Dependencies
