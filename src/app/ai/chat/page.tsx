@@ -3,8 +3,10 @@
 import { useState, useEffect, useRef } from 'react';
 import useRequireAuth from '@/hooks/useRequireAuth';
 import api from '@/lib/api';
-import { Bot, User, Send, Trash2, ShieldAlert } from 'lucide-react';
+import { authClient } from '@/lib/auth-client';
+import { Bot, Send, Trash2 } from 'lucide-react';
 import { toast } from 'react-toastify';
+
 
 
 interface Message {
@@ -79,15 +81,14 @@ export default function AICareerCoachPage() {
     setIsTyping(true);
 
     try {
-      // Read session token the same way the axios interceptor does
-      const getSessionToken = (): string | null => {
-        if (typeof document === 'undefined') return null;
-        const value = `; ${document.cookie}`;
-        const parts = value.split(`; better-auth.session_token=`);
-        if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
-        return localStorage.getItem('better-auth.session_token');
-      };
-      const sessionToken = getSessionToken();
+      // Get session token via Better Auth client (reads HttpOnly cookie server-side)
+      let sessionToken: string | null = null;
+      try {
+        const sessionResult = await authClient.getSession();
+        sessionToken = (sessionResult as any)?.data?.session?.token ?? null;
+      } catch {
+        // proceed without token
+      }
 
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',

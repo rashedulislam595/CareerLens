@@ -1,14 +1,7 @@
 import axios from 'axios';
+import { authClient } from './auth-client';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-
-function getCookie(name: string): string | null {
-  if (typeof document === 'undefined') return null;
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
-  return null;
-}
 
 const api = axios.create({
   baseURL: `${API_URL}/api`,
@@ -16,26 +9,54 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-// Request Interceptor to attach Better Auth Token to Authorization Header
+// Cache the token in memory so we don't call getSession() on every request
+let cachedToken: string | null = null;
+let tokenFetchedAt = 0;
+const TOKEN_TTL_MS = 60 * 1000; // re-fetch every 60 seconds
+
+async function getSessionToken(): Promise<string | null> {
+  if (typeof window === 'undefined') return null;
+
+  const now = Date.now();
+  if (cachedToken && now - tokenFetchedAt < TOKEN_TTL_MS) {
+    return cachedToken;
+  }
+
+  try {
+    // authClient.getSession() calls /api/auth/get-session on the Next.js
+    // server (same origin), which CAN read the HttpOnly session cookie.
+    // It returns the session object including the raw session token.
+    const result = await authClient.getSession();
+    const token = (result as any)?.data?.session?.token ?? null;
+    cachedToken = token;
+    tokenFetchedAt = now;
+    return token;
+  } catch {
+    return null;
+  }
+}
+
+// Request Interceptor — attaches Bearer token to every request
 api.interceptors.request.use(
-  (config) => {
-    if (typeof window !== 'undefined') {
-      const token = getCookie('better-auth.session_token') || localStorage.getItem('better-auth.session_token');
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
+  async (config) => {
+    const token = await getSessionToken();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// We remove the hard redirect to /login from the API interceptor.
-// Redirection logic is cleanly managed by our useRequireAuth hook inside pages.
+// Response Interceptor — on 401, clear cached token and pass error along
 api.interceptors.response.use(
   (res) => res,
   (error) => {
-    // Just pass the error along — let the hooks or UI handle 401 statuses gracefully
+    if (error?.response?.status === 401) {
+      // Invalidate cached token so next request re-fetches a fresh one
+      cachedToken = null;
+      tokenFetchedAt = 0;
+    }
     return Promise.reject(error);
   }
 );
