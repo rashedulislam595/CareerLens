@@ -3,11 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import useRequireAuth from '@/hooks/useRequireAuth';
 import api from '@/lib/api';
-import { authClient } from '@/lib/auth-client';
 import { Bot, Send, Trash2 } from 'lucide-react';
 import { toast } from 'react-toastify';
-
-
 
 interface Message {
   role: 'user' | 'assistant' | 'system';
@@ -81,26 +78,10 @@ export default function AICareerCoachPage() {
     setIsTyping(true);
 
     try {
-      // Get session token via Better Auth client (reads HttpOnly cookie server-side)
-      let sessionToken: string | null = null;
-      try {
-        const sessionResult = await authClient.getSession();
-        sessionToken = (sessionResult as any)?.data?.session?.token ?? null;
-      } catch {
-        // proceed without token
-      }
-
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      if (sessionToken) {
-        headers['Authorization'] = `Bearer ${sessionToken}`;
-      }
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/ai/chat`, {
+      // Use the Next.js proxy route — it adds the auth token server-side
+      const response = await fetch('/api/proxy/ai/chat', {
         method: 'POST',
-        headers,
-        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: finalContent,
           sessionId: activeSessionId,
