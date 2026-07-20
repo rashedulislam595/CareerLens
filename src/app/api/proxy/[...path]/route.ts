@@ -13,14 +13,23 @@ async function proxyRequest(
   // Next.js API routes run on the server so they CAN read HttpOnly cookies.
   // We get the session token here and forward it to the Express backend.
   const incomingHeaders = await nextHeaders();
+  const cookiesHeader = incomingHeaders.get('cookie') || '';
+  const authHeader = incomingHeaders.get('authorization') || '';
+  
+  console.log(`[Proxy Debug] Path: ${path.join('/')}, Method: ${method}`);
+  console.log(`[Proxy Debug] Raw cookie header: ${cookiesHeader}`);
+  console.log(`[Proxy Debug] Raw authorization header: ${authHeader}`);
 
   let authToken: string | null = null;
   try {
     const session = await auth.api.getSession({ headers: incomingHeaders });
-    // Better Auth returns session.token which is the opaque DB token
+    console.log('[Proxy Debug] Resolved session:', session ? 'User found' : 'Null');
+    if (session) {
+      console.log('[Proxy Debug] Session Token:', (session as any)?.session?.token);
+    }
     authToken = (session as any)?.session?.token ?? null;
-  } catch {
-    // No session — protected backend routes will return 401
+  } catch (err: any) {
+    console.error('[Proxy Error] Failed to read session in proxy:', err.message || err);
   }
 
   // ─── Build target URL ────────────────────────────────────────────────────────
