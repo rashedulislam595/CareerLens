@@ -2,19 +2,39 @@ import axios from 'axios';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
-// ─── Axios Instance ───────────────────────────────────────────────────────────
-// withCredentials: true ensures session cookies are sent on every request.
-// Better Auth manages session refresh automatically — no manual token logic needed.
+// Helper to get cookie value by name on the client side
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
+  return null;
+}
+
 const api = axios.create({
   baseURL: `${API_URL}/api`,
   withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
 });
 
+// Request Interceptor to attach Better Auth Token to Authorization Header
+// This acts as a fallback for cross-domain cookie restrictions on Vercel
+api.interceptors.request.use(
+  (config) => {
+    if (typeof window !== 'undefined') {
+      // Better Auth stores session token in localStorage/cookies.
+      // We look for both cookie and localStorage fallback
+      const token = getCookie('better-auth.session_token') || localStorage.getItem('better-auth.session_token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 // ─── 401 Handler ─────────────────────────────────────────────────────────────
-// Only redirect to login if the user has no active Better Auth session cookie.
-// This prevents false redirects when our Express API has a transient auth issue
-// while the user's session is still valid on the client side.
 api.interceptors.response.use(
   (res) => res,
   (error) => {
@@ -23,14 +43,8 @@ api.interceptors.response.use(
       const isAuthPage = currentPath === '/login' || currentPath === '/register';
 
       if (!isAuthPage) {
-        // Check if a Better Auth session cookie actually exists.
-        // If it does, the user IS logged in — don't force-redirect;
-        // let useRequireAuth handle it gracefully via React state.
-        const hasSessionCookie = document.cookie
-          .split(';')
-          .some((c) => c.trim().startsWith('better-auth.session_token='));
-
-        if (!hasSessionCookie) {
+        const token = getCookie('better-auth.session_token') || localStorage.getItem('better-auth.session_token');
+        if (!token) {
           window.location.href = '/login';
         }
       }
