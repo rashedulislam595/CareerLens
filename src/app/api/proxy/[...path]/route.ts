@@ -20,16 +20,15 @@ async function proxyRequest(
   console.log(`[Proxy Debug] Raw cookie header: ${cookiesHeader}`);
   console.log(`[Proxy Debug] Raw authorization header: ${authHeader}`);
 
+  // Directly read HttpOnly session token from the next/headers cookieStore
   let authToken: string | null = null;
   try {
-    const session = await auth.api.getSession({ headers: incomingHeaders });
-    console.log('[Proxy Debug] Resolved session:', session ? 'User found' : 'Null');
-    if (session) {
-      console.log('[Proxy Debug] Session Token:', (session as any)?.session?.token);
-    }
-    authToken = (session as any)?.session?.token ?? null;
+    const { cookies } = await import('next/headers');
+    const cookieStore = await cookies();
+    authToken = cookieStore.get('better-auth.session_token')?.value ?? null;
+    console.log('[Proxy Debug] Directly extracted cookie token:', authToken ? 'Token extracted successfully' : 'No token found in cookies');
   } catch (err: any) {
-    console.error('[Proxy Error] Failed to read session in proxy:', err.message || err);
+    console.error('[Proxy Error] Failed to read cookies store:', err.message || err);
   }
 
   // ─── Build target URL ────────────────────────────────────────────────────────
