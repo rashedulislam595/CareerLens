@@ -4,7 +4,10 @@ export function cn(...inputs: ClassValue[]) {
   return clsx(inputs);
 }
 
-export function formatSalary(min: number, max: number, currency = 'USD', period = 'yearly'): string {
+export function formatSalary(min?: number, max?: number, currency = 'USD', period = 'yearly'): string {
+  if (min === undefined || max === undefined || min === null || max === null) {
+    return 'Negotiable';
+  }
   const fmt = (n: number) => {
     if (n >= 1000) return `${(n / 1000).toFixed(0)}k`;
     return n.toString();

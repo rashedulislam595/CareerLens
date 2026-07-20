@@ -1,63 +1,111 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User } from '@/types';
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
+import { authClient } from '@/lib/auth-client';
 import api from '@/lib/api';
+import { User } from '@/types';
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  updateUser: (data: Partial<User>) => void;
+  /** Refetch profile from /users/profile and update context */
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: session, isPending } = authClient.useSession();
+  const [profile, setProfile] = useState<User | null>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
 
-  // Restore session on mount
+  // Track whether we've completed the very first session check.
+  // This prevents useRequireAuth from redirecting during the initial load
+  // when isPending briefly returns false before the session resolves.
+  const hasInitialized = useRef(false);
+  const [initialized, setInitialized] = useState(false);
+
   useEffect(() => {
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      api.get('/auth/me')
-        .then(({ data }) => setUser(data.data.user))
-        .catch(() => localStorage.removeItem('accessToken'))
-        .finally(() => setIsLoading(false));
-    } else {
-      setIsLoading(false);
+    if (!isPending && !hasInitialized.current) {
+      hasInitialized.current = true;
+      setInitialized(true);
     }
-  }, []);
+  }, [isPending]);
 
-  const login = async (email: string, password: string) => {
-    const { data } = await api.post('/auth/login', { email, password });
-    localStorage.setItem('accessToken', data.data.accessToken);
-    setUser(data.data.user);
-  };
+  // When session changes, fetch extended profile from our API
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!session?.user) return;
+      setProfileLoading(true);
+      try {
+        const { data } = await api.get('/users/profile');
+        setProfile(data.data.user);
+      } catch {
+        // Fallback: build minimal user from Better Auth session data
+        setProfile({
+          _id: session.user.id,
+          name: session.user.name,
+          email: session.user.email,
+          avatar: session.user.image || '',
+          role: 'user',
+          savedJobs: [],
+          isVerified: session.user.emailVerified,
+          profile: {
+            skills: [],
+            experience: '',
+            location: '',
+            bio: '',
+            title: '',
+            linkedIn: '',
+            github: '',
+            portfolio: '',
+          },
+        } as unknown as User);
+      } finally {
+        setProfileLoading(false);
+      }
+    };
 
-  const register = async (name: string, email: string, password: string) => {
-    const { data } = await api.post('/auth/register', { name, email, password });
-    localStorage.setItem('accessToken', data.data.accessToken);
-    setUser(data.data.user);
-  };
+    if (session?.user) {
+      fetchProfile();
+    } else if (!session?.user && !isPending) {
+      setProfile(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user?.id, isPending]);
 
   const logout = async () => {
-    await api.post('/auth/logout');
-    localStorage.removeItem('accessToken');
-    setUser(null);
+    await authClient.signOut();
+    setProfile(null);
   };
 
-  const updateUser = (data: Partial<User>) => {
-    setUser((prev) => (prev ? { ...prev, ...data } : null));
+  const refreshUser = async () => {
+    if (!session?.user) return;
+    try {
+      const { data } = await api.get('/users/profile');
+      setProfile(data.data.user);
+    } catch {
+      // ignore
+    }
   };
+
+  // isLoading is true until:
+  // 1. We've completed the initial session check (initialized)
+  // 2. Better Auth is done fetching the session (isPending)
+  // 3. Profile is being fetched after session is confirmed (profileLoading)
+  const isLoading = !initialized || isPending || (!!session?.user && profileLoading);
 
   return (
     <AuthContext.Provider
-      value={{ user, isLoading, isAuthenticated: !!user, login, register, logout, updateUser }}
+      value={{
+        user: profile,
+        isLoading,
+        isAuthenticated: !!session?.user,
+        logout,
+        refreshUser,
+      }}
     >
       {children}
     </AuthContext.Provider>
