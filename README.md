@@ -13,7 +13,7 @@
 [![Gemini AI](https://img.shields.io/badge/Google-Gemini%203.5%20Flash-4285f4?style=flat-square&logo=google)](https://ai.google.dev/)
 [![Groq](https://img.shields.io/badge/Groq-Llama%203.1-f97316?style=flat-square)](https://groq.com/)
 
-**Client Repo:** [CareerLens](https://github.com/rashedulislam595/CareerLens) &nbsp;|&nbsp; **Server Repo:** [carearlense-server](https://github.com/rashedulislam595/carearlense-server)
+**Client Repo:** [CareerLens](https://github.com/rashedulislam595/CareerLens) &nbsp;|&nbsp; **Server Repo:** [carearlens-server](https://github.com/rashedulislam595/CareerLens-server)
 
 [Live Demo](#) · [API Docs](#-api-endpoints) · [Report Bug](https://github.com/rashedulislam595/CareerLens/issues)
 
